@@ -50,7 +50,7 @@ The compiler supports the following language features:
 
 The compiler is driven by the [Compiler.java](./test/rs/ac/bg/etf/pp1/Compiler.java/) class.
 
-- Input: [program.mj](.test/program.mj/)
+- Input: [program.mj](test/program.mj/)
 - Output: `program.obj` (MicroJava bytecode)
 
 The `.obj` file can be executed on the MicroJava Virtual Machine.
@@ -109,7 +109,7 @@ The [build.xml](./build.xml/) file defines the compilation and execution targets
 
 - Standard output is printed to console
 
-- Debug output (stack state and instruction trace) is written to: [test/output.txt](./test/output.txt/)
+- Debug output (stack state and instruction trace) is written to: `test/output.txt`
 - Due to Ant execution constraints, interactive console input is not used.
 
 ### Structure of the program
