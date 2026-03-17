@@ -152,8 +152,8 @@ Set environment variables:
 
 Add to PATH:
 
-- `%ANT_HOME%/bin`
-- `%JAVA_HOME%/bin`
+- `%ANT_HOME%\bin`
+- `%JAVA_HOME%\bin`
 
 Verify installation:
 `ant -version`
