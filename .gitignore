@@ -1,0 +1,21 @@
+# Java build output
+bin/
+*.class
+
+# Ant / compiler generated runtime artifacts
+logs/
+*.log
+*.obj
+test/output.txt
+
+# IDE metadata
+.settings/
+.classpath
+.project
+.vscode/
+
+# OS/editor noise
+*.tmp
+*.swp
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,318 @@
+
+package rs.ac.bg.etf.pp1;
+
+import java_cup.runtime.*;
+import org.apache.log4j.*;
+import rs.ac.bg.etf.pp1.ast.*;
+
+parser code {:
+
+	boolean errorDetected;
+
+	Logger log = Logger.getLogger(getClass());
+   
+   
+    // redefined methods for error logging
+     
+    public void report_fatal_error(String message, Object info) throws java.lang.Exception {
+      done_parsing();
+      report_error(message, info);
+    }
+  
+    public void syntax_error(Symbol cur_token) {
+        report_error("\nSyntax error ", cur_token);
+    }
+  
+    public void unrecovered_syntax_error(Symbol cur_token) throws java.lang.Exception {
+        report_fatal_error("Fatal error, parsing can't continue ", cur_token);
+    }
+
+    public void report_error(String message, Object info) {
+    	errorDetected = true;
+    	StringBuilder msg = new StringBuilder(message); 
+    	if (info instanceof Symbol)
+            msg.append (" on line ").append(((Symbol)info).left);
+        log.error(msg.toString());
+    }
+
+
+:}
+
+init with {:
+	errorDetected = false;
+:}
+
+scan with {:
+	Symbol s = this.getScanner().next_token();
+	if (s != null && s.value != null) 
+		log.info(s.toString() + " " + s.value.toString());
+	return s;
+:}
+
+
+
+terminal PROG, ENUM, CONST, ASSIGN, COMMA, SEMI, DOT, COLON;
+terminal LBRACE, RBRACE, LBRACKET, RBRACKET, LPAREN, RPAREN;
+terminal MAIN, VOID, READ, PRINT, LEN, NEW, IF, ELSE;
+terminal INC, DEC, PLUS, MINUS, MUL, DIV, MOD, EQ, NE, GT, GE, LT, LE, QUESTION;
+terminal DUPQUEOP, HASH, CARET, CONDOP, FINAL, AT;
+terminal String IDENT;
+terminal Integer NUMBER;
+terminal Character CHAR;
+terminal Integer BOOL;
+
+nonterminal DeclListOpt, DeclList, Decl, ConstDeclList, VarDeclList, EnumDeclList;
+nonterminal ConstDecl, ConstDeclInner, VarDecl, VarDeclInner, VarDeclBrackets, EnumDecl, EnumDeclInner, EnumDeclInit;
+nonterminal MethodVarDecl, StatementList, Statement, DesignatorStatement, PrintWidth;
+nonterminal DesignStmtFuncPars, ActPars;
+nonterminal Assignop, Addop, Mulop, Relop, ColonMark;
+
+nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgramName, Program, MethodName, MethodDecl;
+nonterminal rs.etf.pp1.symboltable.concepts.Obj DesignatorName, Designator, EnumName;
+nonterminal rs.etf.pp1.symboltable.concepts.Struct Type, Constant, Factor, FactorOptions, Term, Expr;
+nonterminal rs.etf.pp1.symboltable.concepts.Struct ExprTern, ExprNonTern, CondFact, ExprSub, ExprDupQueOp, CondOperator;
+
+nonterminal DupQueOpMark, Else, ElseMark, FinalKeyword;
+
+precedence left ELSE;
+
+Program ::= (Program) PROG ProgramName DeclListOpt LBRACE MethodDecl RBRACE;
+
+ProgramName ::= (ProgramName) IDENT:progName;
+
+DeclListOpt ::= (DeclListOptYes) DeclList
+                |
+                (DeclListOptEps) /* epsilon */
+                ;
+                
+DeclList ::= (DeclListMore) DeclList Decl
+             | 
+             (DeclListOne) Decl
+             ;
+             
+Decl ::= (DeclConst) ConstDeclList
+         |
+         (DeclVar) VarDeclList
+         | 
+         (DeclEnum) EnumDeclList
+         |
+         (DeclError) error SEMI:e
+         {:
+             parser.report_error("Error recovery on line " + eleft, null);
+         :}
+         ;
+
+ConstDeclList ::= (ConstDeclList) CONST Type ConstDeclInner SEMI;
+
+ConstDeclInner ::= (ConstDeclMore) ConstDeclInner COMMA ConstDecl
+				  |
+				  (ConstDeclOne) ConstDecl
+				  ;
+				  
+ConstDecl ::= (ConstDecl) IDENT:constName ASSIGN Constant;
+
+Constant ::= (ConstantNumber) NUMBER:numConst
+             | 
+             (ConstantChar) CHAR:charConst
+             |
+             (ConstantBool) BOOL:boolConst
+             ;
+             
+Type ::= (Type) IDENT:typeName;
+				  
+VarDeclList ::= (VarDeclList) FinalKeyword Type VarDeclInner SEMI;
+
+FinalKeyword ::= (FinalKeywordYes) FINAL
+				 |
+				 (FinalKeywordEps) /* epsilon */
+				 ;
+
+VarDeclInner ::= (VarDeclMore) VarDeclInner COMMA VarDecl
+                 |
+                 (VarDeclOne) VarDecl
+		         ;
+                 
+VarDecl ::= (VarDecl) IDENT:varName VarDeclBrackets;
+
+VarDeclBrackets ::= (VarDeclBracketsYes) LBRACKET RBRACKET
+					|
+					(VarDeclBracketsEps) /* epsilon */
+					;
+					
+EnumDeclList ::= (EnumDeclList) ENUM EnumName LBRACE EnumDeclInner RBRACE;
+
+EnumName ::= (EnumName) IDENT:enumName;
+
+EnumDeclInner ::= (EnumDeclMore) EnumDeclInner COMMA EnumDecl
+				  |
+				  (EnumDeclOne) EnumDecl
+				  ;
+				  
+EnumDecl ::= (EnumDecl) IDENT:enumValueName EnumDeclInit;
+
+EnumDeclInit ::= (EnumDeclInitYes) ASSIGN NUMBER:enumInitValue
+				 |
+				 (EnumDeclInitEps) /* epsilon */
+				 ;
+				   
+MethodDecl ::= (MethodDecl) VOID MethodName LPAREN RPAREN MethodVarDecl LBRACE StatementList RBRACE; 
+
+MethodName ::= (MethodName) MAIN;
+
+MethodVarDecl ::= (MethodVarDeclYes) MethodVarDecl VarDeclList
+             |
+             (MethodVarDeclEps) /* epsilon */
+             ;
+             
+StatementList ::= (StatementListYes) StatementList Statement
+                  |
+                  (StatementListEps) /* epsilon */
+                  ;
+                  
+Statement ::= (StatementDesignator) DesignatorStatement SEMI
+              |
+              (StatementRead) READ LPAREN Designator RPAREN SEMI
+              |
+              (StatementPrint) PRINT LPAREN Expr PrintWidth RPAREN SEMI
+              |
+              (StatementIf) IF LPAREN CondFact RPAREN Statement Else
+              |
+              (StatementBraces) LBRACE Statement RBRACE
+              |
+	          (StatementAssignError) error SEMI:e
+	          {: 
+	             parser.report_error("Error recovery on line " + eleft, null);
+	          :}
+	          ;
+	          
+Else ::= (ElseYes) ElseMark Statement
+         |
+         (ElseEps) /* epsilon */
+         ;
+         
+ElseMark ::= (ElseMark) ELSE;
+              
+PrintWidth ::= (PrintWidthYes) COMMA NUMBER:printWidthValue
+               |
+               (PrintWidthEps) /* epsilon */
+               ;
+
+DesignatorStatement ::= (DesignatorStatementAssign) Designator Assignop Expr
+		   			  |
+                      (DesignatorStatementFunc) Designator LPAREN DesignStmtFuncPars RPAREN
+                      |
+                      (DesignatorStatementInc) Designator INC
+                      |
+                      (DesignatorStatementDec) Designator DEC
+                      |
+                      (DesignatorStatementCaret) Designator CARET NUMBER:mulFactor
+                      ;
+                      
+DesignStmtFuncPars ::= (DesignStmtFuncParsYes) ActPars
+                       |
+                       (DesignStmtFuncParsEps) /* epsilon */
+                       ;
+                       
+ActPars ::= (ActParsMore) ActPars COMMA Expr
+            |
+            (ActParsOne) Expr
+            ;                      
+                      
+Expr ::= (Expr) ExprDupQueOp;
+         
+ExprDupQueOp ::= (ExprDupQueOpMore) ExprDupQueOp DUPQUEOP DupQueOpMark ExprSub
+				 |
+				 (ExprDupQueOpOne) ExprSub
+				 ;
+				 
+DupQueOpMark ::= (DupQueOpMark) /* epsilon */;
+				 
+ExprSub ::= (ExprNonTernary) ExprNonTern
+	        |
+	        (ExprTernary) ExprTern
+	        ;
+         
+ExprNonTern ::= (ExprNonTernMore) ExprNonTern Addop Term
+			    |
+			    (ExprNonTernOne) Term
+			    ;
+                   
+ExprTern ::= (ExprTern) CondFact QUESTION ExprSub COLON ColonMark ExprSub;
+
+ColonMark ::= (ColonMark) /* epsilon */;
+            
+CondFact ::= (CondFactExpr) ExprNonTern
+             |
+             (CondFactRelop) ExprNonTern Relop ExprNonTern
+             ;
+
+Designator ::= (DesignatorEnum) DesignatorName DOT IDENT:fieldName
+               |
+               (DesignatorLen) DesignatorName DOT LEN
+               |
+               (DesignatorArrayIndex) DesignatorName LBRACKET Expr RBRACKET
+               |
+               (DesignatorVar) DesignatorName
+               |
+               (DesignatorHashtag) HASH DesignatorName
+               ;
+                        
+DesignatorName ::= (DesignatorName) IDENT:varName;
+                        
+Term ::= (TermMore) Term Mulop CondOperator
+         |
+         (TermOne) CondOperator
+         ; 
+         
+CondOperator ::= (CondOperatorMore) CondOperator CONDOP Factor
+			     |
+			     (CondOperatorOne) Factor
+			     ;
+         
+Factor ::= (FactorMinus) MINUS FactorOptions
+           |
+           (FactorNoMinus) FactorOptions
+           ;
+           
+FactorOptions ::= (FactorOptionsDesignFunc) Designator LPAREN DesignStmtFuncPars RPAREN
+			      |
+			      (FactorOptionsConst) Constant
+			      |
+			      (FactorOptionsNew) NEW Type LBRACKET Expr RBRACKET
+			      |
+			      (FactorOptionsParen) LPAREN Expr RPAREN
+			      |
+			      (FactorOptionsDesign) Designator
+			      |
+			      (FactorOptionsAT) Designator AT Designator
+			      ;
+         
+Mulop ::= (MulopMul) MUL
+          |
+          (MulopDiv) DIV
+          |
+          (MulopMod) MOD
+          ;
+                        
+Assignop ::= (Assignop) ASSIGN;               
+
+Addop ::= (AddopPlus) PLUS
+          |
+          (AddopMinus) MINUS
+          ;
+          
+Relop ::= (RelopEq) EQ
+          |
+          (RelopNe) NE
+          |
+          (RelopGt) GT
+          |
+          (RelopGe) GE
+          |
+          (RelopLt) LT
+          |
+          (RelopLe) LE
+          ;
+
+
+

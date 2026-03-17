@@ -1,0 +1,42 @@
+// Test
+
+program testMJ
+
+enum Letter {A = 65, B, T = 84}
+
+Letter letter;
+char ch;
+
+{
+	void main()	int n, intArray[]; bool arr1[], arr2[];
+	{
+		letter = Letter.A;
+		ch = 'B';
+		arr1 = new bool[4];
+		read(arr1); // 4 digits from input
+		arr2 = new bool[4]; // 1100 = 12 
+		arr2[0] = true;
+		arr2[0] = true;
+		arr2[0] = false;
+		arr2[0] = false;
+
+		if (arr1 > arr2) {
+			print(chr(letter)); // A
+		}
+		else {
+			print(ch); // B
+		}
+		print(eol);
+		print(arr1 ?? arr2);
+		print(eol);
+
+		read(n);
+		intArray = new int[n];
+		read(intArray);
+		print(intArray); // print array elems
+		print(eol);
+		print(#intArray); // max
+	}
+}
+
+
